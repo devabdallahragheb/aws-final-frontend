@@ -1,10 +1,11 @@
 import { useState } from 'react';
-
+import {  useNavigate } from 'react-router-dom';
+import axios from "axios";
 const SignUp = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
-
+    const navigate = useNavigate();
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -15,23 +16,19 @@ const SignUp = () => {
         setSuccess(null);
         
         try {
-            const response = await fetch('https://h43sje6zi4.execute-api.us-east-1.amazonaws.com/dev/signup', {
-                method: 'POST',
-                headers: {
+            const response = await axios.post(
+                "https://h43sje6zi4.execute-api.us-east-1.amazonaws.com/prod/signup",
+                formData, 
+                {
+                  headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-
-            if (!response.ok) {
-                // Handle errors
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Something went wrong');
-            }
-
-            const data = await response.json();
-            setSuccess('Signup successful!'); // Handle success message
-            console.log(data);
+                  },
+                }
+              );
+        
+      
+            setSuccess('Signup successful!'); 
+            navigate('/login');// Handle success message
         } catch (err) {
             setError(err.message); // Set error message
             console.error('Signup error:', err);
@@ -55,6 +52,14 @@ const SignUp = () => {
                 type="password" 
                 name="password" 
                 placeholder="Password" 
+                onChange={handleChange} 
+                required 
+                className="block w-full p-2 mb-4 border rounded" 
+            />
+                  <input 
+                type="name" 
+                name="name" 
+                placeholder="name" 
                 onChange={handleChange} 
                 required 
                 className="block w-full p-2 mb-4 border rounded" 

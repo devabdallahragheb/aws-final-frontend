@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import SignUp from './components/SignUp';
 import Login from './components/Login';
 import UploadImage from './components/UploadImage';
+import NewUploadImage from './components/NewUploadImage';
 
 const App = () => {
     return (
@@ -13,6 +14,7 @@ const App = () => {
                 <Header />
                 <main className="p-4">
                     <Routes>
+                        <Route path="/" element={<Login />} />
                         <Route path="/signup" element={<SignUp />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/upload" element={<UploadImage />} />
