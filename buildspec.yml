@@ -1,13 +1,12 @@
 version: 0.2
-
 phases:
   install:
-    runtime-versions:
-      nodejs: 14
     commands:
+      - echo Installing Node.js dependencies...
       - npm install
   build:
     commands:
+      - echo Building React app...
       - npm run build
 artifacts:
   files:

@@ -1,3 +1,11 @@
 #!/bin/bash
-apt-get update
-apt-get install -y nginx  # Or any other web server you use (e.g., Apache)
+
+# Update package lists and install Node.js and Nginx
+sudo apt-get update
+sudo apt-get install -y nodejs npm nginx
+
+# Navigate to your React app directory
+cd /var/www/html
+
+# Install the project dependencies
+npm install
