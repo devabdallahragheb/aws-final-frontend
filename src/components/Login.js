@@ -16,7 +16,7 @@ const Login = () => {
 
       
       const response = await axios.post(
-        "https://h43sje6zi4.execute-api.us-east-1.amazonaws.com/prod/login",
+                "https://h43sje6zi4.execute-api.us-east-1.amazonaws.com/prod/login",
         formData,
         {
           headers: {
@@ -24,12 +24,11 @@ const Login = () => {
           },
         }
       );
-
-      
         setSuccess("Login successful!"); 
-        console.log(response.data); 
+        console.log(response); 
         navigate('/upload');
     } catch (error) {
+      alert(JSON.stringify(error))
       setError(error.response ? error.response.data.message : error.message); // Set error message
       console.error("Error:", error);
     }
