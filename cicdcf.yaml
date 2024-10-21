@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for CI/CD pipeline for a serverless authentication application.
+
+Resources:
+
+  # S3 Bucket for Source Code
+  SourceCodeBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: unique-final-sourcecode-12345 # Change this to a unique name
+      VersioningConfiguration:
+        Status: Enabled
+
+  # S3 Bucket for Frontend
+  FinalFrontendBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: unique-final-frontend-aws-12345 # Change to a unique name
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+  # CI/CD Pipeline
+  CICDPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      Name: FinalProjectPipeline
+      RoleArn: arn:aws:iam::692859936157:role/service-role/AWSCodePipelineServiceRole-us-east-1-finalproject
+      ArtifactStore:
+        Type: S3
+        Location: !Ref SourceCodeBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: S3
+                Version: '1'
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                S3Bucket: !Ref SourceCodeBucket
+                S3ObjectKey: source.zip
+        - Name: Deploy
+          Actions:
+            - Name: DeployAction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: '1'
+              InputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                BucketName: !Ref FinalFrontendBucket
+                Extract: true
+
+Outputs:
+  PipelineName:
+    Description: The name of the CI/CD pipeline
+    Value: !Ref CICDPipeline
+  FinalFrontendBucketName:
+    Description: The name of the S3 bucket for the frontend
+    Value: !Ref FinalFrontendBucket

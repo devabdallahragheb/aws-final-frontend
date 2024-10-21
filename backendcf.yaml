@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create Lambda functions, DynamoDB, S3, and API Gateway.
+
+Resources:
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: "users"
+      AttributeDefinitions:
+        - AttributeName: "email"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "email"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+
+  S3BucketForUploads:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "your-unique-bucket-name-for-uploads" # Change to a unique bucket name
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "lambda-execution-role-final"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: "LambdaDynamoDBS3Policy"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  - !GetAtt UsersTable.Arn
+                  - !Sub "${S3BucketForUploads.Arn}/*"
+
+  LoginLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "LoginFunction"
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: "finalloginaws"
+        S3Key: "source.zip"
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+
+  SignupLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "SignupFunction"
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: "finalsignupaws"
+        S3Key: "source.zip"
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+
+  UploadLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "UploadFunction"
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: "finaluploadaws"
+        S3Key: "source.zip"
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          S3_BUCKET: !Ref S3BucketForUploads
+
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "UserApi"
+
+  LoginApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "login"
+      RestApiId: !Ref ApiGateway
+
+  SignupApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "signup"
+      RestApiId: !Ref ApiGateway
+
+  UploadApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "upload"
+      RestApiId: !Ref ApiGateway
+
+  LoginApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref LoginApiResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginLambdaFunction.Arn}/invocations"
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+
+  SignupApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref SignupApiResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SignupLambdaFunction.Arn}/invocations"
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+
+  UploadApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref UploadApiResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadLambdaFunction.Arn}/invocations"
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: "dev"
+    DependsOn: 
+      - LoginApiMethod
+      - SignupApiMethod
+      - UploadApiMethod
+
+  # Adding permissions for API Gateway to invoke the Lambda functions
+  LoginLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LoginLambdaFunction
+      Principal: apigateway.amazonaws.com
+
+  SignupLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignupLambdaFunction
+      Principal: apigateway.amazonaws.com
+
+  UploadLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref UploadLambdaFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/"
