@@ -25,13 +25,10 @@ const Login = () => {
         }
       );
 
-      if (response.status >= 200 && response.status < 300) {
+      
         setSuccess("Login successful!"); 
         console.log(response.data); 
         navigate('/upload');
-      } else {
-        throw new Error("Login failed! Please check your credentials.");
-      }
     } catch (error) {
       setError(error.response ? error.response.data.message : error.message); // Set error message
       console.error("Error:", error);
